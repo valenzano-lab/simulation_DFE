@@ -1,0 +1,45 @@
+// set up a simulation
+initialize()
+{
+	// set the overall mutation rate
+	initializeMutationRate(5.468928e-08);
+	// we use autosomes not sex chromosomes, therefore:
+	initializeSex("A");
+	// two types of mutations: deleterious and neutral.
+	// Neutral mutation (synonymous sites)
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	// detrimental mutations  (nonsynonymous sites) following a gamma distribution with mean=-2.5, shape=0.3
+	initializeMutationType("m2", 0.1, "g", -2.5, 0.35);
+	// g1 genomic element type: coding: 
+	// Now I initialize the coding element with 2/3 non-synonymous and 1/3 synonymous
+	initializeGenomicElementType("g1", c(m1, m2), c(0.34,0.66));
+	// chromosome consisting of 1500 genomic elements of type g1 , with gaps between them at regular 	intervals
+	for (index in 1:1500)
+		initializeGenomicElement(g1, index*1000, index*1000 + 499);
+	// uniform recombination rate 
+	// this value needs a better estimate
+	initializeRecombinationRate(6.604764e-06);
+}
+1 { sim.addSubpop("p1", 10000); }
+50000 {  p1.setSubpopulationSize(10000); }
+50000: 65000 {
+	// every generation the popsize increases with a factor of  1.000046
+	// this formula was given in the manual to avoid rounding error
+	newSize = asInteger(round(  1.000046^(sim.generation-49999) * 10000));
+	p1.setSubpopulationSize(newSize);
+}
+
+65000 late() {sim.addSubpopSplit("p2", 20000, p1);}
+65001: 71001{
+		
+	newSize_small = asInteger(round( 0.9995008^(sim.generation-65000) * 20000));
+	p1.setSubpopulationSize(newSize_small);
+	newSize_large = asInteger(round( 1.000068^(sim.generation-65000) * 20000));
+	p2.setSubpopulationSize(newSize_large);
+}
+71001 late() {
+	
+	p1.outputSample(60,filePath="SmallPop_mutations_ModelC.txt",append=F);
+	p2.outputSample(60,filePath="LargePop_mutations_ModelC.txt",append=F);
+	sim.outputFixedMutations(filePath="All_substitutions_ModelC.txt",append=F);
+}
